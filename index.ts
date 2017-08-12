@@ -7,7 +7,8 @@ import * as async from 'async';
 
 // Parse arguments
 program
-    .version('0.1.0');
+    .version('0.1.0')
+    .usage(`<operation> <source> <destination>`);
 
 program
     .command('copy <source> <destination>')
@@ -49,7 +50,7 @@ function execute(operation:Function, source:string, destination:string){
                         var dateTaken = data.exif.DateTimeOriginal;
 
                         var year = dateTaken.getFullYear().toString();
-                        var month = ("00" + dateTaken.getMonth() + 1).slice(-2);
+                        var month = ("00" + (dateTaken.getMonth() + 1)).slice(-2);
                         var day = ("00" + dateTaken.getDate()).slice(-2);
 
                         var destinationDir = path.join(
@@ -70,19 +71,19 @@ function execute(operation:Function, source:string, destination:string){
                     console.log(`${operation == fs.copy ? 'copy' : 'move'} ${src} to ${dst}`);
 
                     operation(src, dst, done);
-
-                    done(null);
                 }]
             };
 
             async.auto(operations, undefined, done);
 
-        }, function (err) {
+        }, function (err, results:any[]) {
 
             if (err) {
                 console.log(`Did not complete the operation. Error: ${err}`);
                 return;
             }
+
+            console.log(`Successfully ${operation == fs.copy ? 'copied' : 'moved'} ${results.length} files`);
         });
     });
 

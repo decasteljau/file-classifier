@@ -12,4 +12,8 @@ The program extract the date the picture was taken from the exif data, then it c
 
 ## Usage
 
-node file-classifier -source G:\MySDCard -destination D:\Photos
+`node index copy <source> <destination>`
+
+or
+
+`node index move <source> <destination>`
