@@ -13,7 +13,10 @@
                 "${workspaceRoot}/out/**/*.js"
             ],
             "args": [
-                            ] 
+                "copy",
+                "D:\\temp\\images",
+                "D:\\temp\\images_out"
+            ] 
         }
     ]
 }

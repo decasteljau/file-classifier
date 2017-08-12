@@ -4,6 +4,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as program from 'commander';
 import * as async from 'async';
+import * as recursiveReadDir from 'recursive-readdir';
 
 // Parse arguments
 program
@@ -33,58 +34,84 @@ interface ExifData{
 
 function execute(operation:Function, source:string, destination:string){
 
-    fs.readdir(source, function (err, files) {
+    var mainTasks = {
+        read_existing : function(done:any){
+            recursiveReadDir(destination, ["*.jpg"], done);
+        },
+        read_source : ['read_existing', function(results: any, done:any){
+            fs.readdir(source, function (err, files) {
 
-        if (err) {
-            console.log(`could not read directory. Error: ${err}`);
-            return;
-        }
-        async.mapLimit(files, 8, function (file, done) {
+                if (err) {
+                    console.log(`could not read directory. Error: ${err}`);
+                    return;
+                }
 
-            var src = path.join(source, file);
+                // Store the existing files in a set
+                var existing = new Set<string>();
+                results.read_existing.forEach((f:string)=>existing.add(path.basename(f)));
 
-            var operations = {
-                get_destination: function (done: any) {
-                    exif.read(src).then(function (data: ExifData) {
+                // Only keep the non existing files
+                files = files.filter(function(file){
+                    return !existing.has(path.basename(file));
+                });
 
-                        var dateTaken = data.exif.DateTimeOriginal;
+                // Process files
+                async.mapLimit(files, 8, function (file, done) {
 
-                        var year = dateTaken.getFullYear().toString();
-                        var month = ("00" + (dateTaken.getMonth() + 1)).slice(-2);
-                        var day = ("00" + dateTaken.getDate()).slice(-2);
+                    var src = path.join(source, file);
 
-                        var destinationDir = path.join(
-                            destination,
-                            `${year}`,
-                            `${year}-${month}`,
-                            `${year}-${month}-${day}`,
-                        );
+                    var operations = {
+                        get_destination: function (done: any) {
+                            exif.read(src).then(function (data: ExifData) {
 
-                        done(null, destinationDir);
-                    }).catch(function (err: any) { done(err) });
-                },
-                prepare_destination: ['get_destination', function (results: any, done: any) {
-                    fs.ensureDir(results.get_destination, done);
-                }],
-                move_file: ['prepare_destination', function (results: any, done: any) {
-                    var dst = path.join(results.get_destination, file);
-                    console.log(`${operation == fs.copy ? 'copy' : 'move'} ${src} to ${dst}`);
+                                var dateTaken = data.exif.DateTimeOriginal;
 
-                    operation(src, dst, done);
-                }]
-            };
+                                var year = dateTaken.getFullYear().toString();
+                                var month = ("00" + (dateTaken.getMonth() + 1)).slice(-2);
+                                var day = ("00" + dateTaken.getDate()).slice(-2);
 
-            async.auto(operations, undefined, done);
+                                var destinationDir = path.join(
+                                    destination,
+                                    `${year}`,
+                                    `${year}-${month}`,
+                                    `${year}-${month}-${day}`,
+                                );
 
-        }, function (err, results:any[]) {
+                                done(null, destinationDir);
+                            }).catch(function (err: any) { done(err) });
+                        },
+                        prepare_destination: ['get_destination', function (results: any, done: any) {
+                            fs.ensureDir(results.get_destination, done);
+                        }],
+                        move_file: ['prepare_destination', function (results: any, done: any) {
+                            var dst = path.join(results.get_destination, file);
+                            console.log(`${operation == fs.copy ? 'copy' : 'move'} ${src} to ${dst}`);
+
+                            operation(src, dst, done);
+                        }]
+                    };
+
+                    // Execute file operations
+                    async.auto(operations, undefined, done);
+
+                }, done);
+            });            
+        }]
+    };
+    
+    async.auto(mainTasks, undefined,
+        function (err, results: any[]) {
 
             if (err) {
                 console.log(`Did not complete the operation. Error: ${err}`);
                 return;
             }
 
-            console.log(`Successfully ${operation == fs.copy ? 'copied' : 'moved'} ${results.length} files`);
-        });
-    });
+            console.log(`Successfully completed the operation.`);
+            console.log('Press any key to exit');
 
+            //process.stdin.setRawMode(true);
+            process.stdin.resume();
+            process.stdin.on('data', process.exit.bind(process, 0));            
+        });
 }

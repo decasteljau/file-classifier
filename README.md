@@ -6,6 +6,8 @@ The program extract the date the picture was taken from the exif data, then it c
 
 [destination]/[year]/[year]-[month]/[year]-[month]-[day]
 
+The program only copies/moves pictures that are not on destination.
+
 ## Setup 
 
 `npm install`
