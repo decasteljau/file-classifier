@@ -10,7 +10,13 @@ The program only copies/moves pictures that are not on destination.
 
 ## Setup 
 
+Install dependencies:
+
 `npm install`
+
+Compile TypeScript:
+
+`tsc -p .`
 
 ## Usage
 
