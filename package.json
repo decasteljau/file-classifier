@@ -14,7 +14,7 @@
     "exifr": "^6.0.0",
     "fast-exif": "^1.0.1",
     "fs-extra": "^9.0.1",
-    "recursive-readdir": "^2.2.2"
+    "recursive-readdir": "^2.2.3"
   },
   "devDependencies": {
     "@types/async": "^3.2.5",
